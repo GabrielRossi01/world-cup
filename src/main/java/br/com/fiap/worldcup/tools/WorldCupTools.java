@@ -1,48 +1,86 @@
 package br.com.fiap.worldcup.tools;
 
-import br.com.fiap.worldcup.model.MatchPrediction;
-import br.com.fiap.worldcup.model.Team;
-import br.com.fiap.worldcup.repository.MatchPredictionRepository;
-import br.com.fiap.worldcup.repository.TeamRepository;
-import lombok.extern.slf4j.Slf4j;
+import br.com.fiap.worldcup.model.Match;
+import br.com.fiap.worldcup.repository.MatchRepository;
 import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 @Component
-@Slf4j
 public class WorldCupTools {
 
-    private final TeamRepository teamRepository;
-    private final MatchPredictionRepository matchPredictionRepository;
+    private final MatchRepository matchRepository;
 
-    public WorldCupTools(TeamRepository teamRepository, MatchPredictionRepository matchPredictionRepository) {
-        this.teamRepository = teamRepository;
-        this.matchPredictionRepository = matchPredictionRepository;
+    public WorldCupTools(MatchRepository matchRepository) {
+        this.matchRepository = matchRepository;
     }
 
-    @Tool(name = "find_team_by_name", description = "Busca informações de uma seleção da Copa do Mundo 2026 pelo nome")
-    public Team findTeamByName (
-            @ToolParam(description = "Nome da seleção que deseja consultar") String teamName
-    ) {
-        log.info("Searching team by name: {}", teamName);
+    @Tool(description = "Retorna a estreia de uma seleção na Copa do Mundo 2026, com data, adversário e estádio.")
+    public String getTeamDebut(String teamName) {
+        List<Match> matches = matchRepository.findByTeam(teamName);
 
-        return teamRepository.findByNameIgnoreCase(teamName)
-                .orElse(null);
+        return matches.stream()
+                .filter(m -> m.getMatchDate() != null)
+                .min(Comparator.comparing(Match::getMatchDate))
+                .map(m -> {
+                    String opponent = m.getHomeTeam().getName().equalsIgnoreCase(teamName)
+                            ? m.getAwayTeam().getName()
+                            : m.getHomeTeam().getName();
+
+                    return "%s estreia contra %s em %s, no estádio %s."
+                            .formatted(
+                                    teamName,
+                                    opponent,
+                                    m.getMatchDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))),
+                                    m.getStadium()
+                            );
+                })
+                .orElse("Não encontrei a estreia da seleção " + teamName + " na base cadastrada.");
     }
 
-    @Tool(name = "save_match_prediction", description = "Salva uma previsão de partida da Copa do Mundo 2026")
-    public void saveMatchPrediction(
-            @ToolParam(description = "Dados completos da previsão da partida")MatchPrediction prediction
-    ) {
-        log.info("Saving match prediction: {} x {}", prediction.getHomeTeam(), prediction.getAwayTeam());
-        prediction.setId(null);
-        matchPredictionRepository.save(prediction);
+    @Tool(description = "Retorna a agenda completa de jogos de uma seleção na Copa do Mundo 2026.")
+    public String getTeamSchedule(String teamName) {
+        List<Match> matches = matchRepository.findByTeam(teamName);
+
+        if (matches.isEmpty()) {
+            return "Não encontrei jogos da seleção " + teamName + " na base cadastrada.";
+        }
+
+        return matches.stream()
+                .filter(m -> m.getMatchDate() != null)
+                .sorted(Comparator.comparing(Match::getMatchDate))
+                .map(m -> "%s x %s - %s - %s"
+                        .formatted(
+                                m.getHomeTeam().getName(),
+                                m.getAwayTeam().getName(),
+                                m.getMatchDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", new Locale("pt", "BR"))),
+                                m.getStadium()
+                        ))
+                .collect(Collectors.joining("\n"));
     }
 
-    @Tool(name = "list_all_teams", description = "Lista todas as seleções cadastradas no sistema")
-    public Iterable<Team> listAllTeams() {
-        log.info("Listing all teams");
-        return teamRepository.findAll();
+    @Tool(description = "Retorna os próximos jogos de uma seleção a partir da data atual.")
+    public String getUpcomingMatches(String teamName) {
+        List<Match> matches = matchRepository.findUpcomingMatchesByTeam(teamName, LocalDateTime.now());
+
+        if (matches.isEmpty()) {
+            return "Não encontrei próximos jogos da seleção " + teamName + " na base cadastrada.";
+        }
+
+        return matches.stream()
+                .map(m -> "%s x %s - %s - %s"
+                        .formatted(
+                                m.getHomeTeam().getName(),
+                                m.getAwayTeam().getName(),
+                                m.getMatchDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", new Locale("pt", "BR"))),
+                                m.getStadium()
+                        ))
+                .collect(Collectors.joining("\n"));
     }
 }

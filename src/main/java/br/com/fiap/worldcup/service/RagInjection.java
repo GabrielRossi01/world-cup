@@ -5,11 +5,11 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Configuration
+@Service
 public class RagInjection {
 
     private final VectorStore vectorStore;
@@ -20,13 +20,16 @@ public class RagInjection {
 
     @PostConstruct
     public void loadPdfToVector() {
-        String pdf = "classpath:doc/fwc26-match-schedule.pdf";
+        try {
+            String pdf = "classpath:doc/fwc26-match-schedule.pdf";
+            var reader = new PagePdfDocumentReader(pdf);
+            var splitter = TokenTextSplitter.builder().build();
 
-        var reader = new PagePdfDocumentReader(pdf);
-        var splitter = TokenTextSplitter.builder().build();
-
-        List<Document> documents = splitter.apply(reader.get());
-        vectorStore.add(documents);
+            List<Document> documents = splitter.apply(reader.get());
+            vectorStore.add(documents);
+        } catch (Exception e) {
+            throw new IllegalStateException("Erro ao carregar o PDF no VectorStore", e);
+        }
     }
 
 }

@@ -1,9 +1,6 @@
 package br.com.fiap.worldcup.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,5 +19,12 @@ public class MatchPrediction {
     private String awayTeam;
     private String predictedScore;
     private String favoriteTeam;
+
+    @Column(length = 3000)
     private String analysis;
+
+    private Integer homeWinChance;
+    private Integer drawChance;
+    private Integer awayWinChance;
+    private String confidence;
 }
