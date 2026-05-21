@@ -8,7 +8,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@StyleSheet(Lumo.STYLESHEET)
+@StyleSheet(Lumo.DARK)
 @ColorScheme(ColorScheme.Value.DARK)
 public class WorldCupApplication implements AppShellConfigurator {
 

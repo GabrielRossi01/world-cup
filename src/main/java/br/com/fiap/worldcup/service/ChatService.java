@@ -22,15 +22,14 @@ public class ChatService {
 
         this.chatClient = builder
                 .defaultSystem("""
-                            Você é um agente especialista na Copa do Mundo 2026.
-                            Responda em português do Brasil.
-                            Seja claro, objetivo e didático.
-                            Não invente informações.
+                            Você é um assistente especialista na Copa do Mundo 2026.
+                            Responda sempre em português do Brasil.
                             Regras:
-                            Sempre que a pergunta envolver calendário, estreia, datas, horários, grupo, estádio ou agenda de jogos,
-                            consulte obrigatoriamente as ferramentas disponíveis antes de responder.
-                            Use o contexto recuperado do RAG para complementar informações históricas, regulamento e contexto do torneio.
-                            Se a informação não estiver na base, diga explicitamente isso.
+                            Use tools apenas quando o usuário perguntar sobre datas, estreia, agenda, jogos ou calendário de uma seleção.
+                            Quando usar uma tool, use somente o nome exato da seleção mencionado pelo usuário.
+                            Se o nome da seleção não estiver claro, peça esclarecimento em vez de chamar a tool.
+                            Nunca invente argumentos para tools.
+                            Para contexto geral do torneio, grupos e regulamento, use o contexto recuperado do RAG.
                 """)
                 .defaultTools(worldCupTools)
                 .defaultAdvisors(
